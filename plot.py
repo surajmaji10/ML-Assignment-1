@@ -1,85 +1,108 @@
-import os
-import argparse
-import numpy as np
-import matplotlib.pyplot as plt
+import os  
+import argparse  
+import numpy as np  
+import matplotlib.pyplot as plt  
 
-
-def main(args: argparse.Namespace):
-    assert os.path.exists(args.logs_path), "Invalid logs path"
-    # for i in [True, False]:
-    #     for j in range(1, 6):
-    #         assert os.path.exists(os.path.join(args.logs_path, f"run_{j}_{i}.npy")),\
-    #             f"File run_{j}_{i}.npy not found in {args.logs_path}"
-    # TODO: Load data and plot the standard means and standard deviations of
-    # the accuracies for the two settings (active and random strategies)
-    # TODO: also ensure that the files have the same length
+def main(args: argparse.Namespace):  
+    assert os.path.exists(args.logs_path), "Invalid logs path"  
 
     # Load data for random and active strategies  
-    random_accs = []  
-    active_accs = []  
+    random_means = []  
+    random_variances = []  
+    active_means = []  
+    active_variances = []  
 
     for i in range(1, 6):  
         # Load random strategy data  
-        random_file = os.path.join(args.logs_path, f"run_{1}_False.npy")  
+        random_file = os.path.join(args.logs_path, f"run_{i}_False.npy")  
         assert os.path.exists(random_file), f"File {random_file} not found"  
-        random_accs.append(np.load(random_file))  
+        random_data = np.load(random_file)
+        print("RANDOM:\n", random_data)  
+        random_means.append(np.round(np.mean(random_data), 4))  
+        random_variances.append(np.round(np.var(random_data), 4))  
 
         # Load active strategy data  
-        active_file = os.path.join(args.logs_path, f"run_{1}_False.npy")  
+        active_file = os.path.join(args.logs_path, f"run_{i}_True.npy")  
         assert os.path.exists(active_file), f"File {active_file} not found"  
-        active_accs.append(np.load(active_file))  
+        active_data = np.load(active_file) 
+        print("ACTIVE:\n", active_data)   
+        active_means.append(np.round(np.mean(active_data), 4))  
+        active_variances.append(np.round(np.var(active_data), 4))  
 
-    # Ensure all files have the same length  
-    min_length = min(min(len(acc) for acc in random_accs), min(len(acc) for acc in active_accs))  
-    random_accs = [acc[:min_length] for acc in random_accs]  
-    active_accs = [acc[:min_length] for acc in active_accs]  
+    # X-axis labels for runs  
+    runs = [f"Run {i}" for i in range(1, 6)]  
+    x = np.arange(len(runs))  # the label locations  
+    width = 0.35  # the width of the bars  
 
-    # Compute mean and standard deviation  
-    random_mean = np.mean(random_accs, axis=0)  
-    random_std = np.std(random_accs, axis=0)  
-    active_mean = np.mean(active_accs, axis=0)  
-    active_std = np.std(active_accs, axis=0)  
+    # Plot for Means  
+    plt.figure(figsize=(12, 6))  
+    bars1 = plt.bar(x - width / 2, random_means, width, label="Random Strategy Mean", color="yellow")  
+    bars2 = plt.bar(x + width / 2, active_means, width, label="Active Learning Strategy Mean", color="green")  
 
-    print(random_accs)
-    print(active_accs)
-    print(random_mean)
-    print(random_std)
-    print(active_mean)
-    print(active_std)
+    # Add a horizontal dotted line for supervised accuracy  
+    plt.axhline(y=args.supervised_accuracy/100, color='black', linestyle='dashed', linewidth=2, label="Supervised Accuracy (0.7603)")  
 
-    # Plot the results  
-    x = np.arange(10_000, 10_000 + min_length * 5_000, 5_000)  # X-axis: number of labeled samples  
-    plt.figure(figsize=(10, 6))  
+    # Annotate bars with mean values  
+    for bar in bars1:
+        plt.text(bar.get_x() + bar.get_width()/2, 
+                bar.get_height() / 2,  # Position at the center of the bar
+                f"{bar.get_height():.4f}", 
+                ha='center', va='center',  # Align center horizontally and vertically
+                fontsize=10, fontweight='bold', color='black')  # Use white for better visibility
 
-    # Plot random strategy  
-    plt.plot(x, random_mean, label="Random Strategy", color="blue")  
-    plt.fill_between(x, random_mean - random_std, random_mean + random_std, color="blue", alpha=0.2)  
+    for bar in bars2:
+        plt.text(bar.get_x() + bar.get_width()/2, 
+                bar.get_height() / 2,  
+                f"{bar.get_height():.4f}", 
+                ha='center', va='center',  
+                fontsize=10, fontweight='bold', color='black')  
 
-    # Plot active strategy  
-    plt.plot(x, active_mean, label="Active Learning Strategy", color="red")  
-    plt.fill_between(x, active_mean - active_std, active_mean + active_std, color="red", alpha=0.2)  
 
-    # Plot supervised accuracy  
-    plt.axhline(y=args.supervised_accuracy, color="green", linestyle="dotted", label="Supervised Accuracy")  
-
-    # Add labels and title  
-    plt.xlabel("Number of Labeled Samples")  
-    plt.ylabel("Validation Accuracy")  
-    plt.title("Comparison of Random vs Active Learning Strategy")  
+    # Labels, title, and legend  
+    plt.xlabel("Runs")  
+    plt.ylabel("Mean Accuracy")  
+    plt.title("Mean Accuracy Across 5 Runs for Random and Active Learning Strategies")  
+    plt.xticks(x, runs)  
     plt.legend()  
     plt.grid(True)  
 
     # Save the plot  
-    plot_path = os.path.join(args.logs_path, f"comparison_plot_{args.sr_no}.png")  
-    plt.savefig(plot_path)  
-    print(f"Plot saved to {plot_path}") 
-    return
-    raise NotImplementedError
+    means_plot_path = os.path.join(args.logs_path, f"means_plot_{args.sr_no}.png")  
+    plt.savefig(means_plot_path, dpi=300)  
+    print(f"Means plot saved to {means_plot_path}")  
+    plt.close()  
 
+    # Plot for Variances  
+    plt.figure(figsize=(12, 6))  
+    bars1 = plt.bar(x - width / 2, random_variances, width, label="Random Strategy Variance", color="yellow")  
+    bars2 = plt.bar(x + width / 2, active_variances, width, label="Active Learning Strategy Variance", color="green")  
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--sr_no", type=int, required=True)
-    parser.add_argument("--logs_path", type=str, default="logs")
-    parser.add_argument("--supervised_accuracy", type=float, required=True)
-    main(parser.parse_args())
+    # Annotate bars with variance values  
+    for bar in bars1:
+        plt.text(bar.get_x() + bar.get_width()/2, bar.get_height(), f"{bar.get_height():.4f}", 
+                 ha='center', va='center', fontsize=10, fontweight='bold', color='black')
+
+    for bar in bars2:
+        plt.text(bar.get_x() + bar.get_width()/2, bar.get_height(), f"{bar.get_height():.4f}", 
+                 ha='center', va='center', fontsize=10, fontweight='bold', color='black')
+
+    # Labels, title, and legend  
+    plt.xlabel("Runs")  
+    plt.ylabel("Variance")  
+    plt.title("Variance Across 5 Runs for Random and Active Learning Strategies")  
+    plt.xticks(x, runs)  
+    plt.legend()  
+    plt.grid(True)  
+
+    # Save the plot  
+    variances_plot_path = os.path.join(args.logs_path, f"variances_plot_{args.sr_no}.png")  
+    plt.savefig(variances_plot_path, dpi=300)  
+    print(f"Variances plot saved to {variances_plot_path}")  
+    plt.close()  
+
+if __name__ == "__main__":  
+    parser = argparse.ArgumentParser()  
+    parser.add_argument("--sr_no", type=int, required=True)  
+    parser.add_argument("--logs_path", type=str, default="logs")  
+    parser.add_argument("--supervised_accuracy", type=float, required=True)  
+    main(parser.parse_args())  

@@ -21,3 +21,4 @@
 115000 items - Train time: 14958.588878277
 120000 items - Train time: 15682.194167971
 125000 items - Train time: 16408.060908704
+130000 items - Train time: 17146.728576649
